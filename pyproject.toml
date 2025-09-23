@@ -67,6 +67,7 @@ select = [
 ignore = [
     "ASYNC109",
     "PLR0913",
+    "COM812",
 ]
 
 [tool.ruff.lint.per-file-ignores]

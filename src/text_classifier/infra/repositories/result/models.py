@@ -23,7 +23,7 @@ class ModerationResult(FrozenModel):
 
     @model_validator(mode="after")
     def validate_result(self) -> Self:
-        if not self.result and not self.error or self.result and self.error:
+        if (not self.result and not self.error) or (self.result and self.error):
             raise ValueError("Either `result` or `error` must be set")
         if self.result and self.error:
             raise ValueError("Cannot set both `result` and `error`")

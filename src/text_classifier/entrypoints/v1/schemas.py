@@ -16,5 +16,3 @@ class EnqueuedModerationText(FrozenModel):
 
 class ModerationRequest(EnqueueModerationText):
     task_id: Annotated[UUID4, Field(default_factory=lambda: uuid.uuid4())]
-
-
