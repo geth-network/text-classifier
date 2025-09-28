@@ -55,9 +55,9 @@ def init_pipeline(
     global _pipeline  # noqa: PLW0603
     if _pipeline is None:
         with _lock:
-            logger.bind(path=path).info("Initializing pipeline")
+            logger.bind(path=path, device=device).info("Initializing pipeline")
             _pipeline = pipeline("text-classification", path, device=device)
-            logger.bind(path=path).info("Initialized pipeline")
+            logger.bind(path=path, device=device).info("Initialized pipeline")
     return _pipeline
 
 

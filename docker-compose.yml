@@ -16,6 +16,7 @@ services:
       start_period: 10s
 
   api:
+    container_name: text-classifier-api
     build:
       context: .
       target: runtime
@@ -23,8 +24,11 @@ services:
       - net
     ports:
       - "8000:8000"
+    volumes:
+      - ./hf_home:/app/hf_home
     environment:
-      TEXT_CLASSIFIER__RABBIT__URL: "amqp://rabbit:password@rabbit:5672/"
+      HF_HOME: "/app/hf_home/"
+      TEXT_CLASSIFIER__RABBIT__URL: "amqp://rabbit:password@rabbit:5672/?heartbeat=180"
     depends_on:
       rabbit:
         condition: service_healthy

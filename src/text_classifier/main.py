@@ -30,14 +30,8 @@ def _init_core_router(log_level: int, config: RabbitSettings) -> RabbitRouter:
         on_return_raises=True,
     )
     router.include_router(consumers_router)
+    router.include_router(v1_router, prefix="/v1")
     return router
-
-
-@asynccontextmanager
-async def lifespan(_: FastAPI) -> AsyncIterator[None]:
-    init_pipeline()
-    yield
-    await logger.complete()
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -45,6 +39,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         settings = get_settings()
     log_min_level = logging.INFO
     setup_logging(min_level=log_min_level)
+
+    @asynccontextmanager
+    async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+        logger.bind(settings=settings.model_dump_json()).info("Starting service")
+        init_pipeline()
+        yield
+        await logger.complete()
 
     app = FastAPI(
         title="Text Classifier",
@@ -58,5 +59,4 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     core_router = _init_core_router(log_min_level, settings.rabbit)
     app.include_router(core_router)
-    app.include_router(v1_router, prefix="/v1")
     return app
