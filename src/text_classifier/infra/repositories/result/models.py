@@ -28,3 +28,7 @@ class ModerationResult(FrozenModel):
         if self.result and self.error:
             raise ValueError("Cannot set both `result` and `error`")
         return self
+
+
+class ListModerationResults(FrozenModel):
+    data: list[ModerationResult]

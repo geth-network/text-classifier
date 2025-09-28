@@ -1,22 +1,30 @@
 import uuid
+from datetime import timedelta
+from typing import Annotated
 
 from asgi_correlation_id import correlation_id
+from fastapi import Query
 from faststream.rabbit.fastapi import RabbitRouter
+from loguru import logger
 
+from text_classifier.entrypoints.v1.deps import ResultRepoDep
 from text_classifier.entrypoints.v1.enums import QueueName
 from text_classifier.entrypoints.v1.schemas import (
-    EnqueuedModerationText,
+    EnqueuedTask,
     EnqueueModerationText,
     ModerationRequest,
 )
-from text_classifier.infra.repositories.result.models import ModerationResult
+from text_classifier.infra.repositories.result.models import (
+    ListModerationResults,
+    ModerationResult,
+)
 from text_classifier.services import text_moderator
 
 router = RabbitRouter()
 
 
 @router.post("/queues/classifiers/moderation/")
-async def dispatch_request(request: EnqueueModerationText) -> EnqueuedModerationText:
+async def dispatch_request(request: EnqueueModerationText) -> EnqueuedTask:
     moderation_request = ModerationRequest(text=request.text, task_id=uuid.uuid4())
     await router.broker.publish(
         moderation_request,
@@ -24,10 +32,25 @@ async def dispatch_request(request: EnqueueModerationText) -> EnqueuedModeration
         mandatory=True,
         persist=True,
         correlation_id=correlation_id.get() or uuid.uuid4().hex,
+        expiration=timedelta(minutes=15),
+        reply_to=QueueName.PROCESS_MODERATION_RESULT,
     )
-    return EnqueuedModerationText(task_id=moderation_request.task_id)
+    logger.bind(task=moderation_request.model_dump_json()).info(
+        "Enqueued moderation task"
+    )
+    return EnqueuedTask(task_id=moderation_request.task_id)
 
 
 @router.get("/queues/classifiers/moderation/{task_id}")
-def get_result(task_id: str) -> ModerationResult:
-    return text_moderator.retrieve_result(task_id)
+def get_result(repo: ResultRepoDep, task_id: str) -> ModerationResult:
+    return text_moderator.retrieve_result(repo, task_id)
+
+
+@router.get("/queues/classifiers/moderation/")
+def list_results(
+    repo: ResultRepoDep,
+    limit: Annotated[int, Query(default=100, le=1000, ge=1)],
+    offset: Annotated[int, Query(default=0, ge=0)],
+) -> ListModerationResults:
+    results = text_moderator.list_results(repo, limit, offset)
+    return ListModerationResults(data=results)

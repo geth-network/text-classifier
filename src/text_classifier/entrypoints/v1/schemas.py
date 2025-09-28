@@ -10,7 +10,7 @@ class EnqueueModerationText(FrozenModel):
     text: Annotated[str, Field(min_length=1, max_length=8000)]
 
 
-class EnqueuedModerationText(FrozenModel):
+class EnqueuedTask(FrozenModel):
     task_id: UUID4
 
 

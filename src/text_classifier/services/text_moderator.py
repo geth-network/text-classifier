@@ -3,8 +3,8 @@ from uuid import UUID
 
 from loguru import logger
 
-from text_classifier.infra.repositories.deberta import init_pipeline
-from text_classifier.infra.repositories.result.in_memory import get_result_repo
+from text_classifier.infra.repositories.deberta import DebertaRepo
+from text_classifier.infra.repositories.result import InMemoryResultRepository
 from text_classifier.infra.repositories.result.models import (
     ModerationResult,
     TaskError,
@@ -12,9 +12,7 @@ from text_classifier.infra.repositories.result.models import (
 )
 
 
-def moderate(task_id: UUID, text: str) -> None:
-    deberta = init_pipeline()
-    result_repo = get_result_repo()
+def moderate(deberta: DebertaRepo, task_id: UUID, text: str) -> ModerationResult:
     error: TaskError | None
     try:
         output = deberta.run_pipeline(text)
@@ -27,21 +25,31 @@ def moderate(task_id: UUID, text: str) -> None:
             status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
             is_recoverable=True,
         )
-        result = None
+        task_result = None
     else:
         error = None
-        result = TaskResult(label=output["category"], score=output["score"])
-    moderation_result = ModerationResult(task_id=task_id, result=result, error=error)
-    result_repo.save(moderation_result)
+        task_result = TaskResult(label=output["category"], score=output["score"])
+    result = ModerationResult(task_id=task_id, result=task_result, error=error)
+    logger.bind(task_result=result.model_dump_json()).info("Completed text moderation")
+    return result
 
 
-def retrieve_result(task_id: str) -> ModerationResult:
-    result_repo = get_result_repo()
-    return result_repo.get(task_id)
+def process_result(repo: InMemoryResultRepository, result: ModerationResult) -> None:
+    logger.bind(result=result.model_dump_json()).info("Processing moderation result")
+    repo.save(result)
 
 
-def handle_dead_message(task_id: str) -> None:
-    result_repo = get_result_repo()
+def retrieve_result(repo: InMemoryResultRepository, task_id: str) -> ModerationResult:
+    return repo.get(task_id)
+
+
+def list_results(
+    repo: InMemoryResultRepository, limit: int, offset: int
+) -> list[ModerationResult]:
+    return repo.list(limit=limit, offset=offset)
+
+
+def handle_dead_message(repo: InMemoryResultRepository, task_id: str) -> None:
     result = ModerationResult(
         task_id=task_id,
         result=None,
@@ -51,4 +59,4 @@ def handle_dead_message(task_id: str) -> None:
             is_recoverable=True,
         ),
     )
-    result_repo.save(result)
+    repo.save(result)

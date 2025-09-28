@@ -11,3 +11,7 @@ class BaseResultRepository(ABC):
     @abstractmethod
     def save(self, result: ModerationResult) -> None:
         pass
+
+    @abstractmethod
+    def list(self, *, limit: int, offset: int) -> list[ModerationResult]:
+        pass

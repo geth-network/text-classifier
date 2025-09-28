@@ -1,10 +1,13 @@
 import time
+from threading import Lock
 from typing import ClassVar, TypedDict
 
 from loguru import logger
-from transformers import Pipeline, pipeline
+from transformers import Pipeline, TextClassificationPipeline, pipeline
 
 from text_classifier.infra.repositories.enums import DebertaCategory
+
+_lock = Lock()
 
 
 class ModelOutput(TypedDict):
@@ -36,22 +39,26 @@ class DebertaRepo:
     def run_pipeline(self, text: str) -> PipelineResult:
         logger.bind(text=text).info("Running pipeline")
         start = time.monotonic()
-        scores = self._pipe(text)
+        output: ModelOutput = self._pipe(text)[0]
         end = time.monotonic()
-        logger.bind(model_output=scores, elapsed=end - start).info("Completed pipeline")
-        max_label = self._get_max_label(scores)
-        humanized_label = self._LABELS_TO_CATEGORY[max_label["label"]]
-        return PipelineResult(category=humanized_label, score=max_label["score"])
-
-    def _get_max_label(self, result: list[ModelOutput]) -> ModelOutput:
-        return sorted(result, key=lambda x: x["score"], reverse=True)[0]
+        logger.bind(model_output=output, elapsed=end - start).info("Completed pipeline")
+        humanized_label = self._LABELS_TO_CATEGORY[output["label"]]
+        return PipelineResult(category=humanized_label, score=output["score"])
 
 
 _pipeline = None
 
 
-def init_pipeline():  # TODO use local path
+def init_pipeline(path: str = "KoalaAI/Text-Moderation") -> TextClassificationPipeline:
     global _pipeline  # noqa: PLW0603
     if _pipeline is None:
-        _pipeline = pipeline("text-classification", model="KoalaAI/Text-Moderation")
+        with _lock:
+            _pipeline = pipeline("text-classification", path)
+            logger.bind(path=path).info("Initialized pipeline")
     return _pipeline
+
+
+def get_deberta_repo(pipe: TextClassificationPipeline | None = None) -> DebertaRepo:
+    if pipe is None:
+        pipe = init_pipeline()
+    return DebertaRepo(pipe)
