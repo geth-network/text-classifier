@@ -1,10 +1,15 @@
-class ResultRepoError(Exception):
+from http import HTTPStatus
+
+from text_classifier.exceptions import AppError
+
+
+class ResultRepoError(AppError):
     pass
 
 
 class DuplicatedResultError(ResultRepoError):
-    pass
+    _status_code = HTTPStatus.CONFLICT
 
 
 class ResultNotFoundError(ResultRepoError):
-    pass
+    _status_code = HTTPStatus.NOT_FOUND

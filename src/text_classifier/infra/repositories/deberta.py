@@ -53,12 +53,12 @@ def init_pipeline(path: str = "KoalaAI/Text-Moderation") -> TextClassificationPi
     global _pipeline  # noqa: PLW0603
     if _pipeline is None:
         with _lock:
+            logger.bind(path=path).info("Initializing pipeline")
             _pipeline = pipeline("text-classification", path)
             logger.bind(path=path).info("Initialized pipeline")
     return _pipeline
 
 
-def get_deberta_repo(pipe: TextClassificationPipeline | None = None) -> DebertaRepo:
-    if pipe is None:
-        pipe = init_pipeline()
+def get_deberta_repo() -> DebertaRepo:
+    pipe = init_pipeline()
     return DebertaRepo(pipe)

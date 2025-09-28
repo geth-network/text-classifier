@@ -9,6 +9,7 @@ dependencies = [
     "fastapi~=0.116",
     "faststream[rabbit]~=0.5.48",
     "loguru~=0.7",
+    "orjson>=3.11.3",
     "transformers[torch]~=4.56",
     "uvicorn[standard]~=0.35",
 ]

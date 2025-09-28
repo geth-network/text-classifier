@@ -16,3 +16,8 @@ class EnqueuedTask(FrozenModel):
 
 class ModerationRequest(EnqueueModerationText):
     task_id: Annotated[UUID4, Field(default_factory=lambda: uuid.uuid4())]
+
+
+class ErrorResponse(FrozenModel):
+    msg: str
+    is_recoverable: bool

@@ -39,7 +39,7 @@ def process_result(repo: InMemoryResultRepository, result: ModerationResult) -> 
     repo.save(result)
 
 
-def retrieve_result(repo: InMemoryResultRepository, task_id: str) -> ModerationResult:
+def retrieve_result(repo: InMemoryResultRepository, task_id: UUID) -> ModerationResult:
     return repo.get(task_id)
 
 

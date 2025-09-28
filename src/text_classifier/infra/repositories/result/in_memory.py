@@ -1,4 +1,5 @@
 from threading import Lock
+from uuid import UUID
 
 from loguru import logger
 
@@ -25,12 +26,14 @@ class InMemoryResultRepository(BaseResultRepository):
                 )
             self._storage[result.task_id.hex] = result
 
-    def get(self, task_id: str) -> ModerationResult:
+    def get(self, task_id: UUID) -> ModerationResult:
         with _repo_lock:
             try:
-                result = self._storage[task_id]
+                result = self._storage[task_id.hex]
             except KeyError as err:
-                raise ResultNotFoundError(f"Result with {task_id=} not found") from err
+                raise ResultNotFoundError(
+                    "Result not found for the specified task id"
+                ) from err
         logger.bind(result=result.model_dump()).info("Got moderation result from DB")
         return result
 

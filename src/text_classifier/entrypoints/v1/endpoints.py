@@ -1,17 +1,20 @@
 import uuid
 from datetime import timedelta
+from http import HTTPStatus
 from typing import Annotated
 
 from asgi_correlation_id import correlation_id
 from fastapi import Query
 from faststream.rabbit.fastapi import RabbitRouter
 from loguru import logger
+from pydantic import UUID4
 
 from text_classifier.entrypoints.v1.deps import ResultRepoDep
 from text_classifier.entrypoints.v1.enums import QueueName
 from text_classifier.entrypoints.v1.schemas import (
     EnqueuedTask,
     EnqueueModerationText,
+    ErrorResponse,
     ModerationRequest,
 )
 from text_classifier.infra.repositories.result.models import (
@@ -20,7 +23,7 @@ from text_classifier.infra.repositories.result.models import (
 )
 from text_classifier.services import text_moderator
 
-router = RabbitRouter()
+router = RabbitRouter(logger=logger)
 
 
 @router.post("/queues/classifiers/moderation/")
@@ -41,16 +44,19 @@ async def dispatch_request(request: EnqueueModerationText) -> EnqueuedTask:
     return EnqueuedTask(task_id=moderation_request.task_id)
 
 
-@router.get("/queues/classifiers/moderation/{task_id}")
-def get_result(repo: ResultRepoDep, task_id: str) -> ModerationResult:
+@router.get(
+    "/queues/classifiers/moderation/{task_id}",
+    responses={HTTPStatus.NOT_FOUND: {"model": ErrorResponse}},
+)
+def get_result(repo: ResultRepoDep, task_id: UUID4) -> ModerationResult:
     return text_moderator.retrieve_result(repo, task_id)
 
 
 @router.get("/queues/classifiers/moderation/")
 def list_results(
     repo: ResultRepoDep,
-    limit: Annotated[int, Query(default=100, le=1000, ge=1)],
-    offset: Annotated[int, Query(default=0, ge=0)],
+    limit: Annotated[int, Query(le=1000, ge=1)] = 100,
+    offset: Annotated[int, Query(ge=0)] = 0,
 ) -> ListModerationResults:
     results = text_moderator.list_results(repo, limit, offset)
     return ListModerationResults(data=results)

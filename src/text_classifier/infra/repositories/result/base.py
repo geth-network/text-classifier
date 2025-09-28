@@ -1,11 +1,12 @@
 from abc import ABC, abstractmethod
+from uuid import UUID
 
 from text_classifier.infra.repositories.result.models import ModerationResult
 
 
 class BaseResultRepository(ABC):
     @abstractmethod
-    def get(self, task_id: str) -> ModerationResult:
+    def get(self, task_id: UUID) -> ModerationResult:
         pass
 
     @abstractmethod

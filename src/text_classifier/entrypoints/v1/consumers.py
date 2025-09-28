@@ -27,7 +27,7 @@ router = RabbitRouter()
         },
     )
 )
-def moderate_text(repo: DebertaRepoDep, request: ModerationRequest) -> ModerationResult:
+def moderate_text(request: ModerationRequest, repo: DebertaRepoDep) -> ModerationResult:
     return text_moderator.moderate(repo, request.task_id, request.text)
 
 
