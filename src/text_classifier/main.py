@@ -9,6 +9,8 @@ from faststream.rabbit.fastapi import RabbitRouter
 from loguru import logger
 
 from text_classifier import __version__
+from text_classifier.config import get_settings
+from text_classifier.config.settings import RabbitSettings, Settings
 from text_classifier.entrypoints.middlewares import http, rabbit
 from text_classifier.entrypoints.v1.consumers import router as consumers_router
 from text_classifier.entrypoints.v1.endpoints import router as v1_router
@@ -18,8 +20,9 @@ from text_classifier.infra.repositories.deberta import init_pipeline
 from text_classifier.tools.log import setup_logging
 
 
-def _init_core_router(log_level: int) -> RabbitRouter:
+def _init_core_router(log_level: int, config: RabbitSettings) -> RabbitRouter:
     router = RabbitRouter(
+        config.url.get_secret_value(),
         middlewares=(rabbit.ContextMiddleware, rabbit.exception_middleware),
         logger=logger,
         log_level=log_level,
@@ -37,7 +40,9 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     await logger.complete()
 
 
-def create_app() -> FastAPI:
+def create_app(settings: Settings | None = None) -> FastAPI:
+    if settings is None:
+        settings = get_settings()
     log_min_level = logging.INFO
     setup_logging(min_level=log_min_level)
 
@@ -51,7 +56,7 @@ def create_app() -> FastAPI:
     app.add_exception_handler(AppError, http.app_error_handler)  # type: ignore[arg-type]
     app.add_exception_handler(Exception, http.generic_error_handler)
 
-    core_router = _init_core_router(log_min_level)
+    core_router = _init_core_router(log_min_level, settings.rabbit)
     app.include_router(core_router)
     app.include_router(v1_router, prefix="/v1")
     return app
