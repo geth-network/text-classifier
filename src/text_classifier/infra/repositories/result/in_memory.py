@@ -20,16 +20,16 @@ class InMemoryResultRepository(BaseResultRepository):
     def save(self, result: ModerationResult) -> None:
         logger.bind(result=result.model_dump()).info("Saving moderation result")
         with _repo_lock:
-            if result.task_id.hex in self._storage:
+            if result.task_id in self._storage:
                 raise DuplicatedResultError(
                     f"Result with {result.task_id=} already exists"
                 )
-            self._storage[result.task_id.hex] = result
+            self._storage[str(result.task_id)] = result
 
     def get(self, task_id: UUID) -> ModerationResult:
         with _repo_lock:
             try:
-                result = self._storage[task_id.hex]
+                result = self._storage[str(task_id)]
             except KeyError as err:
                 raise ResultNotFoundError(
                     "Result not found for the specified task id"

@@ -28,6 +28,7 @@ def _init_core_router(log_level: int, config: RabbitSettings) -> RabbitRouter:
         log_level=log_level,
         graceful_timeout=120,
         on_return_raises=True,
+        asyncapi_url=str(config.url),
     )
     router.include_router(consumers_router)
     router.include_router(v1_router, prefix="/v1")

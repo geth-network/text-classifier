@@ -1,7 +1,7 @@
 from typing import Any
 
-from faststream.rabbit import RabbitExchange, RabbitQueue
-from faststream.rabbit.fastapi import RabbitMessage, RabbitRouter
+from faststream.rabbit import RabbitExchange, RabbitQueue, RabbitRouter
+from faststream.rabbit.fastapi import RabbitMessage
 from loguru import logger
 
 from text_classifier.entrypoints.v1.deps import DebertaRepoDep, ResultRepoDep

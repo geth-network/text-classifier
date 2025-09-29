@@ -5,7 +5,7 @@ from typing import Annotated
 
 from asgi_correlation_id import correlation_id
 from fastapi import Query
-from faststream.rabbit.fastapi import RabbitRouter
+from faststream.rabbit.fastapi import RabbitBroker, RabbitRouter
 from loguru import logger
 from pydantic import UUID4
 
@@ -23,13 +23,15 @@ from text_classifier.infra.repositories.result.models import (
 )
 from text_classifier.services import text_moderator
 
-router = RabbitRouter(logger=logger)
+router = RabbitRouter()
 
 
 @router.post("/queues/classifiers/moderation/")
-async def dispatch_request(request: EnqueueModerationText) -> EnqueuedTask:
+async def dispatch_request(
+    request: EnqueueModerationText, broker: RabbitBroker
+) -> EnqueuedTask:
     moderation_request = ModerationRequest(text=request.text, task_id=uuid.uuid4())
-    await router.broker.publish(
+    await broker.publish(
         moderation_request,
         queue=QueueName.MODERATION_IN,
         mandatory=True,
